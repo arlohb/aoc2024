@@ -1,20 +1,5 @@
 const std = @import("std");
 
-pub fn removeSmallest(xs: *std.ArrayList(u32)) u32 {
-    var smallest: u32 = std.math.maxInt(u32);
-    var smallest_i: usize = 0;
-
-    for (xs.items, 0..) |x, index| {
-        if (x < smallest) {
-            smallest = x;
-            smallest_i = index;
-        }
-    }
-
-    _ = xs.orderedRemove(smallest_i);
-    return smallest;
-}
-
 fn parseInput() ![2]std.ArrayList(u32) {
     const file = try std.fs.cwd().openFile("input.txt", .{});
     defer file.close();
@@ -25,9 +10,7 @@ fn parseInput() ![2]std.ArrayList(u32) {
     const buffer = try file.readToEndAlloc(std.heap.page_allocator, std.math.maxInt(usize));
     var lines = std.mem.split(u8, buffer, "\n");
     while (lines.next()) |line| {
-        if (line.len == 0) {
-            continue;
-        }
+        if (line.len == 0) continue;
 
         var parts = std.mem.split(u8, line, "   ");
         const a = try std.fmt.parseInt(u32, parts.next().?, 10);
@@ -47,13 +30,16 @@ fn part1() !void {
     var right = input[1];
     defer right.deinit();
 
+    std.mem.sort(u32, left.items, {}, comptime std.sort.asc(u32));
+    std.mem.sort(u32, right.items, {}, comptime std.sort.asc(u32));
+
     var sum: u32 = 0;
 
-    while (left.items.len != 0) {
-        const a: i32 = @intCast(removeSmallest(&left));
-        const b: i32 = @intCast(removeSmallest(&right));
+    for (left.items, right.items) |a, b| {
+        const a_i: i32 = @intCast(a);
+        const b_i: i32 = @intCast(b);
 
-        const diff = @abs(a - b);
+        const diff = @abs(a_i - b_i);
         sum += diff;
     }
 
