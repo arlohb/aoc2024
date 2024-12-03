@@ -13,7 +13,11 @@ grep -E -o $regex input.txt \
 
 # Part 2
 
-regex="(mul\([0-9]{1,3},[0-9]{1,3}\))|do\(\)|don't\(\)"
+regex_num="[0-9]{1,3}"
+regex_mul="mul\($regex_num,$regex_num\)"
+regex_do="do\(\)"
+regex_dont="don't\(\)"
+regex="$regex_mul|$regex_do|$regex_dont"
 
 start="("
 end=")"
