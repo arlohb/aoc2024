@@ -24,9 +24,14 @@ shiftRightN xs n = repeatF shiftRight n xs
 padLine :: String -> String
 padLine s = '.' : s ++ "."
 
+mapWithIndex :: (a -> Int -> b) -> [a] -> [b]
+mapWithIndex f xs = zipWith f xs [0..]
+
 diagonalLines :: [String] -> [String]
-diagonalLines xs = transpose (zipWith shiftLeftN (map padLine xs) [0..])
-    ++ transpose (zipWith shiftRightN (map padLine xs) [0..])
+diagonalLines xs = let
+        padded = map padLine xs
+    in transpose (mapWithIndex shiftLeftN padded)
+    ++ transpose (mapWithIndex shiftRightN padded)
 
 appendReverse :: [[a]] -> [[a]]
 appendReverse = concatMap (\xs -> [xs, reverse xs])
