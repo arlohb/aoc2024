@@ -1,19 +1,9 @@
+import Data.List (transpose)
+
 findInLines :: String -> Int
 findInLines [] = 0
 findInLines ('X' : 'M' : 'A' : 'S' : xs) = 1 + findInLines xs
 findInLines (x : xs) = findInLines xs
-
--- e.g. [ [1,2,3], [4,5,6] ] [ 8, 9 ] -> [ [1,2,3,8], [4,5,6,9] ]
-zipMultiple' :: [[a]] -> [a] -> [[a]]
-zipMultiple' = zipWith $ \acc next -> acc ++ [next]
-
--- e.g. [ [1,2,3], [4,5,6], [7,8,9] ] -> [ [1,4,7], [2,5,8], [3,6,9] ]
-zipMultiple :: [[a]] -> [[a]]
-zipMultiple [] = []
-zipMultiple (x:xs) = foldl zipMultiple' (map (: []) x) xs
-
-verticalLines :: [String] -> [String]
-verticalLines = zipMultiple
 
 repeatF :: (a -> a) -> Int -> a -> a
 repeatF f 0 x = x
@@ -35,15 +25,15 @@ padLine :: String -> String
 padLine s = '.' : s ++ "."
 
 diagonalLines :: [String] -> [String]
-diagonalLines xs = verticalLines (zipWith shiftLeftN (map padLine xs) [0..])
-    ++ verticalLines (zipWith shiftRightN (map padLine xs) [0..])
+diagonalLines xs = transpose (zipWith shiftLeftN (map padLine xs) [0..])
+    ++ transpose (zipWith shiftRightN (map padLine xs) [0..])
 
 appendReverse :: [[a]] -> [[a]]
 appendReverse = concatMap (\xs -> [xs, reverse xs])
 
 combinations :: [String] -> [String]
 combinations lines = appendReverse $ lines
-    ++ verticalLines lines
+    ++ transpose lines
     ++ diagonalLines lines
 
 count :: [String] -> Int
