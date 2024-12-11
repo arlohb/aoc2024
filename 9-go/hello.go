@@ -6,11 +6,11 @@ import (
 	"os"
 )
 
-func isProcessed(blocks []rune) bool {
+func isProcessed(blocks []int) bool {
     isEmpty := false
 
-    for _, char := range blocks {
-        if char == '.' {
+    for _, int := range blocks {
+        if int == -1 {
             isEmpty = true
         } else {
             if isEmpty {
@@ -22,12 +22,12 @@ func isProcessed(blocks []rune) bool {
     return true
 }
 
-func process(blocks []rune) []rune {
+func process(blocks []int) []int {
     firstEmpty := 0
     lastBlock := math.MaxInt
 
-    for i, char := range blocks {
-        if char == '.' {
+    for i, id := range blocks {
+        if id == -1 {
             firstEmpty = i
             break
         }
@@ -35,51 +35,111 @@ func process(blocks []rune) []rune {
 
     for i := range blocks {
         revI := len(blocks) - i - 1
-        char := blocks[revI]
+        id := blocks[revI]
 
-        if char != '.' {
+        if id != -1 {
             lastBlock = revI
             break
         }
     }
 
     id := blocks[lastBlock]
-    blocks[lastBlock] = '.'
+    blocks[lastBlock] = -1
     blocks[firstEmpty] = id
 
     return blocks
 }
 
-func hash(blocks []rune) int {
+func hash(blocks []int) int {
     sum := 0
 
-    for i, char := range blocks {
-        if char == '.' {
+    for i, id := range blocks {
+        if id == -1 {
             continue
         }
 
-        id := int(char - 48)
         sum += i * id
     }
 
     return sum
 }
 
-func parseInput(input string) []rune {
-    blocks := []rune{}
+func parseInput(input string) ([]int, int) {
+    blocks := []int{}
+    maxId := 0
 
     for index, char := range input {
         num := int(char - 48)
 
         if index % 2 == 0 {
             for i := 0; i < num; i++ {
-                blocks = append(blocks, rune(index / 2 + 48))
+                id := index / 2
+                maxId = id
+                blocks = append(blocks, id)
             }
         } else {
             for i := 0; i < num; i++ {
-                blocks = append(blocks, '.')
+                blocks = append(blocks, -1)
             }
         }
+    }
+
+    return blocks, maxId
+}
+
+func findFile(blocks []int, targetId int) (start int, count int) {
+    start, count = 0, 0
+
+    for i, id := range blocks {
+        if id == targetId {
+            count++
+
+            if start == 0 {
+                start = i
+            }
+        }
+    }
+
+    return
+}
+
+func process2(blocks []int, maxId int) []int {
+    for targetId := maxId; targetId >= 0; targetId-- {
+        fileStart, fileLen := findFile(blocks, targetId)
+
+        freeStart, freeLen := 0, 0
+
+        for i := 0; i < fileStart; i++ {
+            id := blocks[i]
+
+            if id == -1 {
+                if freeLen == 0 {
+                    freeStart = i
+                }
+
+                freeLen++
+            } else {
+                if freeLen >= fileLen {
+                    // Can move
+
+                    for j := 0; j < fileLen; j++ {
+                        blocks[fileStart + j] = -1
+                    }
+
+                    for j := 0; j < fileLen; j++ {
+                        blocks[freeStart + j] = targetId
+                    }
+
+                    break
+                } else {
+                    // Move on
+
+                    freeStart, freeLen = 0, 0
+                }
+            }
+        }
+
+        // fmt.Println(string(blocks))
     }
 
     return blocks
@@ -91,11 +151,18 @@ func main() {
         panic(err)
     }
     input := string(data)
-    blocks := parseInput(input)
+    blocks, maxId := parseInput(input)
+    blocks2 := make([]int, len(blocks))
+    copy(blocks2, blocks)
 
     for !isProcessed(blocks) {
         blocks = process(blocks)
     }
 
     fmt.Println(hash(blocks))
+
+    blocks2 = process2(blocks2, maxId)
+
+    fmt.Println(blocks2)
+    fmt.Println(hash(blocks2))
 }
