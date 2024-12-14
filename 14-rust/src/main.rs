@@ -56,7 +56,7 @@ impl Vector2 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Robot {
     pub pos: Vector2,
     pub vel: Vector2,
@@ -124,12 +124,20 @@ pub fn safety_factor(robots: &[Robot]) -> u32 {
     tl * tr * bl * br
 }
 
-pub fn build_map(robots: &[Robot]) -> String {
-    let mut map: [[u32; WIDTH as usize]; HEIGHT as usize] = [[0; WIDTH as usize]; HEIGHT as usize];
+pub type Map = [[u32; WIDTH as usize]; HEIGHT as usize];
+
+pub fn build_map(robots: &[Robot]) -> Map {
+    let mut map = [[0; WIDTH as usize]; HEIGHT as usize];
 
     robots.iter().for_each(|Robot { pos, .. }| {
         map[pos.y as usize][pos.x as usize] += 1;
     });
+
+    map
+}
+
+pub fn build_map_str(robots: &[Robot]) -> String {
+    let map = build_map(robots);
 
     map.into_iter()
         .map(|row| {
@@ -142,21 +150,45 @@ pub fn build_map(robots: &[Robot]) -> String {
         .join("\n")
 }
 
+pub fn diff_score(map: Map) -> u32 {
+    let mut diff = 0;
+
+    map.into_iter().for_each(|row| {
+        for x in 0..WIDTH as usize - 1 {
+            diff += (row[x] as i32 - row[x + 1] as i32).unsigned_abs();
+        }
+    });
+
+    diff
+}
+
 fn main() -> anyhow::Result<()> {
     let input = std::fs::read_to_string("input.txt")?;
 
-    let mut robots: Vec<_> = input
+    let mut robots1: Vec<_> = input
         .lines()
         .filter_map(|line| line.parse::<Robot>().ok())
         .collect();
 
-    robots.iter_mut().for_each(|robot| robot.advance_n(100));
+    let mut robots2 = robots1.clone();
 
-    let safety = safety_factor(&robots);
-    println!("{safety}");
+    {
+        robots1.iter_mut().for_each(|robot| robot.advance_n(100));
 
-    // let map = build_map(&robots);
-    // print!("{map}");
+        let safety = safety_factor(&robots1);
+        println!("{safety}");
+        drop(robots1);
+    }
+
+    for i in 1..100000 {
+        robots2.iter_mut().for_each(Robot::advance);
+
+        if diff_score(build_map(&robots2)) < 500 {
+            let map = build_map_str(&robots2);
+            println!("{map}\n{i}");
+            break;
+        }
+    }
 
     Ok(())
 }
