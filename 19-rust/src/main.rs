@@ -1,20 +1,46 @@
-use std::collections::HashMap;
-
 use anyhow::anyhow;
+
+#[derive(Debug)]
+struct Map<const N: usize, T> {
+    data: [Option<T>; N],
+}
+
+impl<const N: usize, T: Default> Map<N, T> {
+    pub fn get(&self, n: usize) -> Option<&T> {
+        self.data[n].as_ref()
+    }
+
+    pub fn get_mut_or_insert_default(&mut self, n: usize) -> &mut T {
+        if self.data[n].is_some() {
+            self.data[n].as_mut().unwrap()
+        } else {
+            self.data[n] = Some(T::default());
+            self.data[n].as_mut().unwrap()
+        }
+    }
+}
+
+impl<const N: usize, T> Default for Map<N, T> {
+    fn default() -> Self {
+        Self {
+            data: [(); N].map(|_| Default::default()),
+        }
+    }
+}
 
 #[derive(Default, Debug)]
 struct Tree {
     terminates: bool,
-    // TODO: Could be a different structure as only 5 possible keys
-    // May or may not be faster
-    next: HashMap<u8, Tree>,
+    next: Map<5, Box<Tree>>,
 }
 
 impl Tree {
     pub fn insert(&mut self, s: &[u8]) {
         s.iter()
             .copied()
-            .fold(self, |current, c| current.next.entry(c).or_default())
+            .fold(self, |current, c| {
+                current.next.get_mut_or_insert_default(c as usize)
+            })
             .terminates = true;
     }
 
@@ -26,7 +52,7 @@ impl Tree {
         let mut current = self;
 
         for (i, c) in chars.iter().enumerate() {
-            match current.next.get(c) {
+            match current.next.get(*c as usize) {
                 Some(tree) => current = tree,
                 None => return false,
             }
@@ -57,7 +83,7 @@ impl Tree {
         for (i, c) in chars.iter().enumerate() {
             // dbg!(std::ptr::addr_of!(current));
 
-            match current.next.get(c) {
+            match current.next.get(*c as usize) {
                 Some(tree) => current = tree,
                 None => return count,
             }
