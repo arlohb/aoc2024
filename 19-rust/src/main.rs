@@ -17,7 +17,7 @@ impl Tree {
             .terminates = true;
     }
 
-    pub fn contains(&self, chars: &[char]) -> bool {
+    pub fn contains1(&self, chars: &[char]) -> bool {
         if chars.is_empty() {
             return true;
         }
@@ -35,13 +35,42 @@ impl Tree {
                 // 1 - Terminate lookup here, start next char at root
                 // 2 - Keep looking here, start next char at current
 
-                if self.contains(&chars.iter().skip(i + 1).copied().collect::<Vec<_>>()) {
+                if self.contains1(&chars.iter().skip(i + 1).copied().collect::<Vec<_>>()) {
                     return true;
                 }
             }
         }
 
         current.terminates
+    }
+
+    pub fn contains2(&self, chars: &[char]) -> u32 {
+        if chars.is_empty() {
+            return 0;
+        }
+        // dbg!(chars.len());
+
+        let mut current = self;
+        let mut count = 0;
+
+        for (i, c) in chars.iter().enumerate() {
+            // dbg!(std::ptr::addr_of!(current));
+
+            match current.next.get(c) {
+                Some(tree) => current = tree,
+                None => return count,
+            }
+
+            if current.terminates {
+                // Split here
+                // 1 - Terminate lookup here, start next char at root
+                // 2 - Keep looking here, start next char at current
+
+                count += self.contains2(&chars.iter().skip(i + 1).copied().collect::<Vec<_>>());
+            }
+        }
+
+        count + if current.terminates { 1 } else { 0 }
     }
 }
 
@@ -56,10 +85,18 @@ fn main() -> anyhow::Result<()> {
 
     available.for_each(|s| tree.insert(s));
 
-    let reachable = targets.filter(|s| tree.contains(&s.chars().collect::<Vec<_>>()));
+    let reachable1 = targets
+        .clone()
+        .filter(|s| tree.contains1(&s.chars().collect::<Vec<_>>()));
+    dbg!(targets.clone().count());
+    let reachable2 = targets.enumerate().map(|(i, s)| {
+        dbg!(i);
+        tree.contains2(&s.chars().collect::<Vec<_>>())
+    });
 
-    // dbg!(reachable.collect::<Vec<_>>());
-    dbg!(reachable.count());
+    dbg!(reachable1.count());
+    // dbg!(reachable2.collect::<Vec<_>>());
+    // dbg!(reachable2.sum::<u32>());
 
     Ok(())
 }
