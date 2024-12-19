@@ -7,17 +7,18 @@ struct Tree {
     terminates: bool,
     // TODO: Could be a different structure as only 5 possible keys
     // May or may not be faster
-    next: HashMap<char, Tree>,
+    next: HashMap<u8, Tree>,
 }
 
 impl Tree {
-    pub fn insert(&mut self, s: &str) {
-        s.chars()
+    pub fn insert(&mut self, s: &[u8]) {
+        s.iter()
+            .copied()
             .fold(self, |current, c| current.next.entry(c).or_default())
             .terminates = true;
     }
 
-    pub fn contains1(&self, chars: &[char]) -> bool {
+    pub fn contains1(&self, chars: &[u8]) -> bool {
         if chars.is_empty() {
             return true;
         }
@@ -44,7 +45,7 @@ impl Tree {
         current.terminates
     }
 
-    pub fn contains2(&self, chars: &[char]) -> u32 {
+    pub fn contains2(&self, chars: &[u8]) -> u32 {
         if chars.is_empty() {
             return 0;
         }
@@ -74,6 +75,17 @@ impl Tree {
     }
 }
 
+fn id(c: char) -> u8 {
+    match c {
+        'w' => 0,
+        'u' => 1,
+        'b' => 2,
+        'r' => 3,
+        'g' => 4,
+        _ => 5,
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     let input = std::fs::read_to_string("input.txt")?;
     let (available_str, targets_str) = input.split_once("\n\n").ok_or(anyhow!("Invalid input"))?;
@@ -83,15 +95,15 @@ fn main() -> anyhow::Result<()> {
 
     let mut tree = Tree::default();
 
-    available.for_each(|s| tree.insert(s));
+    available.for_each(|s| tree.insert(&s.chars().map(id).collect::<Vec<_>>()));
 
     let reachable1 = targets
         .clone()
-        .filter(|s| tree.contains1(&s.chars().collect::<Vec<_>>()));
+        .filter(|s| tree.contains1(&s.chars().map(id).collect::<Vec<_>>()));
     dbg!(targets.clone().count());
     let reachable2 = targets.enumerate().map(|(i, s)| {
         dbg!(i);
-        tree.contains2(&s.chars().collect::<Vec<_>>())
+        tree.contains2(&s.chars().map(id).collect::<Vec<_>>())
     });
 
     dbg!(reachable1.count());
