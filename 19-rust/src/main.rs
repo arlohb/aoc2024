@@ -1,6 +1,8 @@
+use std::{collections::HashMap, hash::Hash, sync::Mutex};
+
 use anyhow::anyhow;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 struct Map<const N: usize, T> {
     data: [Option<T>; N],
 }
@@ -28,7 +30,7 @@ impl<const N: usize, T> Default for Map<N, T> {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
 struct Tree {
     terminates: bool,
     next: Map<5, Box<Tree>>,
@@ -71,7 +73,7 @@ impl Tree {
         current.terminates
     }
 
-    pub fn contains2(&self, chars: &[u8]) -> u32 {
+    pub fn contains2(&self, chars: &[u8]) -> u64 {
         if chars.is_empty() {
             return 0;
         }
@@ -93,11 +95,37 @@ impl Tree {
                 // 1 - Terminate lookup here, start next char at root
                 // 2 - Keep looking here, start next char at current
 
-                count += self.contains2(&chars.iter().skip(i + 1).copied().collect::<Vec<_>>());
+                // count += self.contains2(&chars.iter().skip(i + 1).copied().collect::<Vec<_>>());
+                count += TREE_CONTAINS2_MEM.with(|contains2_mem| {
+                    contains2_mem(self, &chars.iter().skip(i + 1).copied().collect::<Vec<_>>())
+                });
             }
         }
 
         count + if current.terminates { 1 } else { 0 }
+    }
+}
+
+thread_local! {
+    pub static TREE_CONTAINS2_MEM: Box<dyn Fn(&Tree, &[u8]) -> u64> = {
+        let contains2_mem = memoize(|(this, chars): (Tree, Vec<u8>)|
+            Tree::contains2(&this, &chars)
+        );
+        Box::new(move |tree, chars| { contains2_mem((tree.clone(), chars.to_vec())) })
+    };
+}
+
+pub fn memoize<I: Hash + Eq + Clone, O: Clone>(f: impl Fn(I) -> O) -> impl Fn(I) -> O {
+    let map = Mutex::new(HashMap::<I, O>::new());
+
+    move |input| {
+        if let Some(output) = map.lock().unwrap().get(&input) {
+            return output.clone();
+        }
+
+        let output = f(input.clone());
+        map.lock().unwrap().insert(input, output.clone());
+        output
     }
 }
 
@@ -134,7 +162,7 @@ fn main() -> anyhow::Result<()> {
 
     dbg!(reachable1.count());
     // dbg!(reachable2.collect::<Vec<_>>());
-    // dbg!(reachable2.sum::<u32>());
+    dbg!(reachable2.sum::<u64>());
 
     Ok(())
 }
